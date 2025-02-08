@@ -20,7 +20,7 @@ Obviously the map contains a bunch of additional noise data including text and s
 
 ## Generative AI
 
-As an experiment about sixty percent of the code is being generated with ChatGPT 4 to see how similar this is to having an actual human co-developer exerting peer pressure in the development. This will be discussed to a greater detail once more development is done.
+As an experiment about sixty percent of the code is being generated with DeepSeek R1 to see how similar this is to having an actual human co-developer exerting peer pressure in the development. This will be discussed to a greater detail once more development is done.
 
 For now, the created source code is similar but not ideally compatible with the ApeSDK. The intention is to integrate this into a shared interface where many of the simplifications from Canterbury1940 can be shared with the ApeSDK.
 
