@@ -1,33 +1,37 @@
 /****************************************************************
+
     canterbury.c - Canterbury1940
-=============================================================
-Copyright 1996-2025 Tom Barbalet. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or
-sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
+ =============================================================
 
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
+ Copyright 1996-2025 Tom Barbalet. All rights reserved.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
+ Permission is hereby granted, free of charge, to any person
+ obtaining a copy of this software and associated documentation
+ files (the "Software"), to deal in the Software without
+ restriction, including without limitation the rights to use,
+ copy, modify, merge, publish, distribute, sublicense, and/or
+ sell copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following
+ conditions:
 
-This software is a continuing work of Tom Barbalet, begun on
-13 June 1996. No apes or cats were harmed in the writing of
-this software.
-****************************************************************/
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ OTHER DEALINGS IN THE SOFTWARE.
+
+ This software is a continuing work of Tom Barbalet, begun on
+ 13 June 1996. No apes or cats were harmed in the writing of
+ this software.
+
+ ****************************************************************/
 
 #include "canterbury.h"
 #include <unistd.h>
@@ -37,6 +41,8 @@ this software.
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+
+#if 0
 
 // Define a structure to store RGB color frequencies.
 typedef struct {
@@ -122,6 +128,87 @@ void pngWriteWithCounter(unsigned char *canterbury) {
     write_png_file(outfileName, WIDTH, HEIGHT, canterbury);
 }
 
+// Structure to store line information.
+typedef struct {
+    int startX, startY;
+    int endX, endY;
+    RGB color;
+} LineInfo;
+
+// Check if two RGB colors are equal.
+bool isColorEqual(RGB color1, RGB color2) {
+    return color1.r == color2.r && color1.g == color2.g && color1.b == color2.b;
+}
+
+// Function to detect and remove lines of the same color in any direction.
+void removeLines(RGB image[WIDTH][HEIGHT], FILE *jsonFile) {
+    fprintf(jsonFile, "[\n"); // Start of JSON array.
+
+    int firstLine = 1; // Flag to handle commas between JSON objects.
+
+    // Directions: horizontal, vertical, and two diagonals.
+    int directions[4][2] = {{1, 0}, {0, 1}, {1, 1}, {1, -1}};
+
+    for (int x = 0; x < WIDTH; x++) {
+        for (int y = 0; y < HEIGHT; y++) {
+            if (image[x][y].r != 255 || image[x][y].g != 255 || image[x][y].b != 255) { // Skip white pixels.
+                RGB color = image[x][y];
+
+                // Check lines in all directions.
+                for (int dir = 0; dir < 4; dir++) {
+                    int dx = directions[dir][0];
+                    int dy = directions[dir][1];
+                    int endX = x, endY = y;
+
+                    // Move in the direction until the color changes or the image boundary is reached.
+                    while (1) {
+                        int nextX = endX + dx;
+                        int nextY = endY + dy;
+
+                        if (nextX < 0 || nextX >= WIDTH || nextY < 0 || nextY >= HEIGHT) {
+                            break; // Out of bounds.
+                        }
+
+                        if (!isColorEqual(image[nextX][nextY], color)) {
+                            break; // Color change.
+                        }
+
+                        endX = nextX;
+                        endY = nextY;
+                    }
+
+                    // If a line is detected, write it to the JSON file.
+                    if (endX != x || endY != y) {
+                        if (!firstLine) {
+                            fprintf(jsonFile, ",\n"); // Add comma between JSON objects.
+                        }
+                        firstLine = 0;
+
+                        fprintf(jsonFile, "  {\n");
+                        fprintf(jsonFile, "    \"startX\": %d,\n", x);
+                        fprintf(jsonFile, "    \"startY\": %d,\n", y);
+                        fprintf(jsonFile, "    \"endX\": %d,\n", endX);
+                        fprintf(jsonFile, "    \"endY\": %d,\n", endY);
+                        fprintf(jsonFile, "    \"color\": {\"r\": %d, \"g\": %d, \"b\": %d}\n", color.r, color.g, color.b);
+                        fprintf(jsonFile, "  }");
+
+                        // Remove the line from the image.
+                        int currentX = x, currentY = y;
+                        while (currentX != endX || currentY != endY) {
+                            image[currentX][currentY] = (RGB){255, 255, 255}; // Set to white.
+                            currentX += dx;
+                            currentY += dy;
+                        }
+                        image[endX][endY] = (RGB){255, 255, 255}; // Set the last pixel to white.
+                    }
+                }
+            }
+        }
+    }
+
+    fprintf(jsonFile, "\n]\n"); // End of JSON array.
+}
+
 // Main function to gather calculations and process the image.
 void gatherCalculations(void) {
     png_t snip;
@@ -136,78 +223,162 @@ void gatherCalculations(void) {
     printf("findTopColors\n");
     free(canterburyByte);
 
-    RGB colorBuffer[7][7];
-    Location outputLocations[MAX_EDGES];
-    int outputCount = 0;
-
-    for (int i = 0; i < TOPCOLORENTRIES; ++i) {
-        printf("Top color %d: 0x%08X, Pixel Count: %u\n", i + 1, topColors[i], pixelCounts[i]);
-
-        RGB color = {
-            .r = (topColors[i] >> 16) & 255,
-            .g = (topColors[i] >> 8) & 255,
-            .b = topColors[i] & 255
-        };
-
-        for (int x = 3; x < WIDTH - 3; x++) {
-            for (int y = 3; y < HEIGHT - 3; y++) {
-                if (isColorEqual(color, canterbury[x][y])) {
-                    for (int dx = -3; dx <= 3; dx++) {
-                        for (int dy = -3; dy <= 3; dy++) {
-                            colorBuffer[dx + 3][dy + 3] = canterbury[x + dx][y + dy];
-                        }
-                    }
-                    arrayElements(colorBuffer, color, outputLocations, &outputCount);
-                    canterbury[x][y] = (RGB){255, 255, 255}; // Mark the pixel as processed.
-                }
-            }
-        }
-        pngWriteWithCounter((unsigned char *)canterbury);
-    }
-}
-
-#define COLOR_THRESHOLD 50.0 // Threshold for RGB closeness
-
-// Check if two colors are within a given distance.
-bool colorDistance(int r1, int g1, int b1, int r2, int g2, int b2, double threshold) {
-    return sqrt((r1 - r2) * (r1 - r2) + (g1 - g2) * (g1 - g2) + (b1 - b2) * (b1 - b2)) <= threshold;
-}
-
-// Check if two RGB colors are equal.
-bool isColorEqual(RGB color1, RGB color2) {
-    return color1.r == color2.r && color1.g == color2.g && color1.b == color2.b;
-}
-
-// Find edge colors close to the center color.
-void findCloseEdgeColors(RGB array[ARRAY_SIZE][ARRAY_SIZE], Location outputLocations[MAX_EDGES], int *outputCount) {
-    RGB centerColor = array[3][3];
-    *outputCount = 0;
-
-    for (int col = 0; col < ARRAY_SIZE; col++) {
-        if (colorDistance(array[0][col].r, array[0][col].g, array[0][col].b, centerColor.r, centerColor.g, centerColor.b, COLOR_THRESHOLD)) {
-            outputLocations[(*outputCount)++] = (Location){0, col};
-        }
-        if (colorDistance(array[ARRAY_SIZE - 1][col].r, array[ARRAY_SIZE - 1][col].g, array[ARRAY_SIZE - 1][col].b, centerColor.r, centerColor.g, centerColor.b, COLOR_THRESHOLD)) {
-            outputLocations[(*outputCount)++] = (Location){ARRAY_SIZE - 1, col};
-        }
+    // Open a JSON file to write line information.
+    char jsonFileName[200];
+    sprintf(jsonFileName, "%slines.json", NEWLOCATION);
+    FILE *jsonFile = fopen(jsonFileName, "w");
+    if (!jsonFile) {
+        fprintf(stderr, "Failed to open JSON file for writing.\n");
+        return;
     }
 
-    for (int row = 1; row < ARRAY_SIZE - 1; row++) {
-        if (colorDistance(array[row][0].r, array[row][0].g, array[row][0].b, centerColor.r, centerColor.g, centerColor.b, COLOR_THRESHOLD)) {
-            outputLocations[(*outputCount)++] = (Location){row, 0};
-        }
-        if (colorDistance(array[row][ARRAY_SIZE - 1].r, array[row][ARRAY_SIZE - 1].g, array[row][ARRAY_SIZE - 1].b, centerColor.r, centerColor.g, centerColor.b, COLOR_THRESHOLD)) {
-            outputLocations[(*outputCount)++] = (Location){row, ARRAY_SIZE - 1};
-        }
-    }
-}
+    // Remove lines and write them to the JSON file.
+    removeLines(canterbury, jsonFile);
 
-// Wrapper function for finding close edge colors.
-void arrayElements(RGB array[ARRAY_SIZE][ARRAY_SIZE], RGB centerColor, Location outputLocations[MAX_EDGES], int *outputCount) {
-    findCloseEdgeColors(array, outputLocations, outputCount);
+    fclose(jsonFile); // Close the JSON file.
+
+    // Write the modified image to a PNG file.
+    pngWriteWithCounter((unsigned char *)canterbury);
 }
 
 int main(int argc, const char *argv[]) {
     gatherCalculations();
     return 0;
 }
+
+
+#else
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define WIDTH 400  // Replace with the actual width of the image.
+#define HEIGHT 400 // Replace with the actual height of the image.
+
+// Structure to represent an RGB color.
+//typedef struct {
+//    unsigned char r, g, b;
+//} RGB;
+
+// Structure to represent a line.
+typedef struct {
+    int startX, startY;
+    int endX, endY;
+    RGB color;
+} LineInfo;
+
+// Function to draw a line on the image array.
+void drawLine(RGB image[WIDTH][HEIGHT], LineInfo line) {
+    int dx = abs(line.endX - line.startX);
+    int dy = abs(line.endY - line.startY);
+    int sx = (line.startX < line.endX) ? 1 : -1;
+    int sy = (line.startY < line.endY) ? 1 : -1;
+    int err = dx - dy;
+
+    int x = line.startX;
+    int y = line.startY;
+
+    while (1) {
+        // Set the pixel color.
+        image[x][y] = line.color;
+
+        if (x == line.endX && y == line.endY) {
+            break; // Line drawing complete.
+        }
+
+        int e2 = 2 * err;
+        if (e2 > -dy) {
+            err -= dy;
+            x += sx;
+        }
+        if (e2 < dx) {
+            err += dx;
+            y += sy;
+        }
+    }
+}
+
+// Function to parse the JSON file and extract line information.
+void parseJSONFile(const char *filename, RGB image[WIDTH][HEIGHT]) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        fprintf(stderr, "Failed to open JSON file.\n");
+        return;
+    }
+
+    char line[256];
+    LineInfo currentLine;
+    int readingLine = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        // Remove newline characters.
+        line[strcspn(line, "\n")] = 0;
+
+        if (strstr(line, "\"startX\":")) {
+            sscanf(line, "    \"startX\": %d,", &currentLine.startX);
+        } else if (strstr(line, "\"startY\":")) {
+            sscanf(line, "    \"startY\": %d,", &currentLine.startY);
+        } else if (strstr(line, "\"endX\":")) {
+            sscanf(line, "    \"endX\": %d,", &currentLine.endX);
+        } else if (strstr(line, "\"endY\":")) {
+            sscanf(line, "    \"endY\": %d,", &currentLine.endY);
+        } else if (strstr(line, "\"r\":")) {
+            sscanf(line, "    \"color\": {\"r\": %hhu, \"g\": %hhu, \"b\": %hhu}", &currentLine.color.r, &currentLine.color.g, &currentLine.color.b);
+            readingLine = 1; // All line data has been read.
+        }
+
+        // If we have read a complete line, draw it on the image.
+        if (readingLine) {
+            drawLine(image, currentLine);
+            readingLine = 0; // Reset for the next line.
+        }
+    }
+
+    fclose(file);
+}
+
+// Function to save the image array as a PNG file.
+void saveImageAsPNG(const char *filename, RGB image[WIDTH][HEIGHT]) {
+    FILE *file = fopen(filename, "wb");
+    if (!file) {
+        fprintf(stderr, "Failed to open output PNG file.\n");
+        return;
+    }
+
+    // Write the PPM header (for simplicity, we'll use PPM format).
+    fprintf(file, "P6\n%d %d\n255\n", WIDTH, HEIGHT);
+
+    // Write the pixel data.
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            fwrite(&image[x][y], sizeof(RGB), 1, file);
+        }
+    }
+
+    fclose(file);
+}
+
+int main(void) {
+    const char *jsonFilename = "/Users/barbalet/github/ds-canterbury1940/lines.json";
+    const char *outputImageFilename = "/Users/barbalet/github/ds-canterbury1940/reconstructed_image.ppm";
+
+    // Initialize the image array with white pixels.
+    RGB image[WIDTH][HEIGHT];
+    for (int x = 0; x < WIDTH; x++) {
+        for (int y = 0; y < HEIGHT; y++) {
+            image[x][y] = (RGB){255, 255, 255}; // White background.
+        }
+    }
+
+    // Parse the JSON file and draw the lines on the image.
+    parseJSONFile(jsonFilename, image);
+
+    // Save the reconstructed image as a PNG file.
+    saveImageAsPNG(outputImageFilename, image);
+
+    printf("Image reconstructed and saved to %s\n", outputImageFilename);
+    return 0;
+}
+
+#endif

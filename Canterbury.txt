@@ -1,3 +1,5 @@
 Day 1: Simplification and Reduction [Feb 9, 2025]
 
 Reduced the code down to a single file. Removed the sleep and allowed the code to run easily. May move back to larger file as this one is rendered quickly down to blocks of color.
+
+Now calculate lines of one of the top sixteen colors over the image. There needs to be a recreation program that takes this file and recreates the image. To be continued...

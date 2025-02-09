@@ -83,8 +83,6 @@ bool isColorSimilar(RGB startColor, RGB currentColor, double threshold);
 
 bool isColorEqual(RGB color1, RGB color2);
 
-//void findColorInArray(RGB array[HEIGHT][WIDTH], RGB outv[HEIGHT][WIDTH], RGB target_color, int px, int py);
-
 void arrayElements(RGB array[ARRAY_SIZE][ARRAY_SIZE], RGB centerColor, Location outputLocations[MAX_EDGES], int* outputCount);
 
 #endif /* canterbury_h */
