@@ -101,7 +101,16 @@ void findTopColors(uint8_t *image, size_t width, size_t height, uint32_t topColo
     free(colorFreqArray); // Free the sorted array.
 }
 
+#ifdef NEW1600
+
+#define MAPLOCATION "/Users/barbalet/github/ds-canterbury1940/canterbury1600.png"
+
+#else
+
 #define MAPLOCATION "/Users/barbalet/github/ds-canterbury1940/canterbury400.png"
+
+#endif
+
 #define NEWLOCATION "/Users/barbalet/github/ds-canterbury1940/"
 
 extern unsigned char *read_png_file(char *filename, png_t *ptr);

@@ -44,8 +44,19 @@
 #ifndef canterbury_h
 #define canterbury_h
 
+#define NEW1600
+
+#ifdef NEW1600
+
+#define WIDTH 1600
+#define HEIGHT 1600
+
+#else
+
 #define WIDTH 400
 #define HEIGHT 400
+
+#endif
 
 #define DOUBLE_THRESHOLD (4)
 
