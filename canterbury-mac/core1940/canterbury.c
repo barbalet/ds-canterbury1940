@@ -331,6 +331,15 @@ void parseJSONFile(const char *filename, RGB image[WIDTH][HEIGHT]) {
 
         // If we have read a complete line, draw it on the image.
         if (readingLine) {
+            // Swap x and y coordinates if necessary.
+            int temp = currentLine.startX;
+            currentLine.startX = currentLine.startY;
+            currentLine.startY = temp;
+
+            temp = currentLine.endX;
+            currentLine.endX = currentLine.endY;
+            currentLine.endY = temp;
+
             drawLine(image, currentLine);
             readingLine = 0; // Reset for the next line.
         }
