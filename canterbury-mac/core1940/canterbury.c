@@ -33,6 +33,8 @@
 
  ****************************************************************/
 
+#if 1
+
 #include "canterbury.h"
 #include <unistd.h>
 #include "pnglite.h"
@@ -41,8 +43,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-
-#if 0
 
 // Define a structure to store RGB color frequencies.
 typedef struct {
@@ -249,12 +249,13 @@ int main(int argc, const char *argv[]) {
 
 #else
 
+#include "canterbury.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define WIDTH 400  // Replace with the actual width of the image.
-#define HEIGHT 400 // Replace with the actual height of the image.
+//#define WIDTH 400  // Replace with the actual width of the image.
+//#define HEIGHT 400 // Replace with the actual height of the image.
 
 // Structure to represent an RGB color.
 //typedef struct {
