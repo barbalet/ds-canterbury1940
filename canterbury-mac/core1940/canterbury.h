@@ -58,11 +58,6 @@
 
 #endif
 
-#define DOUBLE_THRESHOLD (4)
-
-#define ARRAY_SIZE 7
-#define MAX_EDGES (4 * (ARRAY_SIZE - 1)) // Maximum edge points in a 7x7 array
-
 #define TOPCOLORENTRIES 64
 
 typedef union
@@ -93,7 +88,5 @@ bool colorDistance(int r1, int g1, int b1, int r2, int g2, int b2, double thresh
 bool isColorSimilar(RGB startColor, RGB currentColor, double threshold);
 
 bool isColorEqual(RGB color1, RGB color2);
-
-void arrayElements(RGB array[ARRAY_SIZE][ARRAY_SIZE], RGB centerColor, Location outputLocations[MAX_EDGES], int* outputCount);
 
 #endif /* canterbury_h */
