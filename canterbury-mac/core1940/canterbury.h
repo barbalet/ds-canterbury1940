@@ -58,7 +58,7 @@
 
 #endif
 
-#define TOPCOLORENTRIES 64
+#define TOPCOLORENTRIES 16
 
 typedef union
 {

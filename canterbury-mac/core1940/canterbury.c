@@ -149,66 +149,84 @@ bool isColorEqual(RGB color1, RGB color2) {
     return color1.r == color2.r && color1.g == color2.g && color1.b == color2.b;
 }
 
-// Function to detect and remove lines of the same color in any direction.
+// Function to draw a line with a real-number gradient.
+void drawLine(RGB image[WIDTH][HEIGHT], int startX, int startY, int endX, int endY, RGB color) {
+    int dx = abs(endX - startX);
+    int dy = abs(endY - startY);
+    int sx = (startX < endX) ? 1 : -1;
+    int sy = (startY < endY) ? 1 : -1;
+    int err = dx - dy;
+
+    while (1) {
+        image[startX][startY] = color;
+
+        if (startX == endX && startY == endY) break;
+
+        int e2 = 2 * err;
+        if (e2 > -dy) {
+            err -= dy;
+            startX += sx;
+        }
+        if (e2 < dx) {
+            err += dx;
+            startY += sy;
+        }
+    }
+}
+
+// Function to detect and remove lines of the same color with real-number gradients.
 void removeLines(RGB image[WIDTH][HEIGHT], FILE *jsonFile) {
     fprintf(jsonFile, "[\n"); // Start of JSON array.
 
     int firstLine = 1; // Flag to handle commas between JSON objects.
-
-    // Directions: horizontal, vertical, and two diagonals.
-    int directions[4][2] = {{1, 0}, {0, 1}, {1, 1}, {1, -1}};
 
     for (int x = 0; x < WIDTH; x++) {
         for (int y = 0; y < HEIGHT; y++) {
             if (image[x][y].r != 255 || image[x][y].g != 255 || image[x][y].b != 255) { // Skip white pixels.
                 RGB color = image[x][y];
 
-                // Check lines in all directions.
-                for (int dir = 0; dir < 4; dir++) {
-                    int dx = directions[dir][0];
-                    int dy = directions[dir][1];
-                    int endX = x, endY = y;
+                // Check lines in all directions using real-number gradients.
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dy = -1; dy <= 1; dy++) {
+                        if (dx == 0 && dy == 0) continue; // Skip the current pixel.
 
-                    // Move in the direction until the color changes or the image boundary is reached.
-                    while (1) {
-                        int nextX = endX + dx;
-                        int nextY = endY + dy;
+                        int endX = x, endY = y;
 
-                        if (nextX < 0 || nextX >= WIDTH || nextY < 0 || nextY >= HEIGHT) {
-                            break; // Out of bounds.
+                        // Move in the direction until the color changes or the image boundary is reached.
+                        while (1) {
+                            int nextX = endX + dx;
+                            int nextY = endY + dy;
+
+                            if (nextX < 0 || nextX >= WIDTH || nextY < 0 || nextY >= HEIGHT) {
+                                break; // Out of bounds.
+                            }
+
+                            if (!isColorEqual(image[nextX][nextY], color)) {
+                                break; // Color change.
+                            }
+
+                            endX = nextX;
+                            endY = nextY;
                         }
 
-                        if (!isColorEqual(image[nextX][nextY], color)) {
-                            break; // Color change.
+                        // If a line is detected, write it to the JSON file.
+                        if (endX != x || endY != y) {
+                            if (!firstLine) {
+                                fprintf(jsonFile, ",\n"); // Add comma between JSON objects.
+                            }
+                            firstLine = 0;
+
+                            fprintf(jsonFile, "  {\n");
+                            fprintf(jsonFile, "    \"startX\": %d,\n", x);
+                            fprintf(jsonFile, "    \"startY\": %d,\n", y);
+                            fprintf(jsonFile, "    \"endX\": %d,\n", endX);
+                            fprintf(jsonFile, "    \"endY\": %d,\n", endY);
+                            fprintf(jsonFile, "    \"color\": {\"r\": %d, \"g\": %d, \"b\": %d}\n", color.r, color.g, color.b);
+                            fprintf(jsonFile, "  }");
+
+                            // Remove the line from the image.
+                            drawLine(image, x, y, endX, endY, (RGB){255, 255, 255});
                         }
-
-                        endX = nextX;
-                        endY = nextY;
-                    }
-
-                    // If a line is detected, write it to the JSON file.
-                    if (endX != x || endY != y) {
-                        if (!firstLine) {
-                            fprintf(jsonFile, ",\n"); // Add comma between JSON objects.
-                        }
-                        firstLine = 0;
-
-                        fprintf(jsonFile, "  {\n");
-                        fprintf(jsonFile, "    \"startX\": %d,\n", x);
-                        fprintf(jsonFile, "    \"startY\": %d,\n", y);
-                        fprintf(jsonFile, "    \"endX\": %d,\n", endX);
-                        fprintf(jsonFile, "    \"endY\": %d,\n", endY);
-                        fprintf(jsonFile, "    \"color\": {\"r\": %d, \"g\": %d, \"b\": %d}\n", color.r, color.g, color.b);
-                        fprintf(jsonFile, "  }");
-
-                        // Remove the line from the image.
-                        int currentX = x, currentY = y;
-                        while (currentX != endX || currentY != endY) {
-                            image[currentX][currentY] = (RGB){255, 255, 255}; // Set to white.
-                            currentX += dx;
-                            currentY += dy;
-                        }
-                        image[endX][endY] = (RGB){255, 255, 255}; // Set the last pixel to white.
                     }
                 }
             }
@@ -254,7 +272,6 @@ int main(int argc, const char *argv[]) {
     gatherCalculations();
     return 0;
 }
-
 
 #else
 

@@ -1,3 +1,7 @@
+Day 2: Real Number Gradients [Feb 11, 2025]
+
+Using real number lines not integer lines. Need to write a line reducing algorithm.
+
 Day 1: Simplification and Reduction [Feb 9, 2025]
 
 Reduced the code down to a single file. Removed the sleep and allowed the code to run easily. May move back to larger file as this one is rendered quickly down to blocks of color.
