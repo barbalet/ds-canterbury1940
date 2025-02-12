@@ -44,7 +44,7 @@
 #ifndef canterbury_h
 #define canterbury_h
 
-#define NEW1600
+#undef NEW1600
 
 #ifdef NEW1600
 
