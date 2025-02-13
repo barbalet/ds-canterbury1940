@@ -1,3 +1,7 @@
+Day 3: Still Integer Gradient Lines [Feb 12, 2025]
+
+Need to fix the integer gradient lines. Still evident.
+
 Day 2: Real Number Gradients [Feb 11, 2025]
 
 Using real number lines not integer lines. Need to write a line reducing algorithm.
