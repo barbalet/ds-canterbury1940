@@ -44,7 +44,7 @@
 #ifndef canterbury_h
 #define canterbury_h
 
-#define NEW1600
+#undef NEW1600
 
 #ifdef NEW1600
 
@@ -58,7 +58,7 @@
 
 #endif
 
-#define TOPCOLORENTRIES 20
+#define TOPCOLORENTRIES 16
 
 typedef union
 {

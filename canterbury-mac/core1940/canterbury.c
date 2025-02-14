@@ -33,7 +33,10 @@
 
  ****************************************************************/
 
-#if 0
+
+#if 1
+
+#define TOLERANCE_VALUE (20)
 
 #include "canterbury.h"
 #include <unistd.h>
@@ -80,7 +83,8 @@ void findTopColors(uint8_t *image, size_t width, size_t height, uint32_t topColo
     }
 
     // Count the frequency of each color in the image.
-    for (size_t i = 0; i < width * height * 3; i += 3) {
+    size_t imageSize = width * height * 3;
+    for (size_t i = 0; i < imageSize; i += 3) {
         uint32_t color = (image[i] << 16) | (image[i + 1] << 8) | image[i + 2];
         colorFrequency[color]++;
     }
@@ -148,7 +152,7 @@ static int fileCount = 0;
 // Write the image to a PNG file with an incrementing counter.
 void pngWriteWithCounter(unsigned char *canterbury) {
     char outfileName[200];
-    sprintf(outfileName, "%soutput%d.png", NEWLOCATION, fileCount++);
+    snprintf(outfileName, sizeof(outfileName), "%soutput%d.png", NEWLOCATION, fileCount++);
     write_png_file(outfileName, WIDTH, HEIGHT, canterbury);
 }
 
@@ -161,9 +165,9 @@ typedef struct {
 
 // Check if two RGB colors are similar within a tolerance.
 bool isColorSimilar(RGB color1, RGB color2, int tolerance) {
-    return abs(color1.r - color2.r) <= tolerance &&
-           abs(color1.g - color2.g) <= tolerance &&
-           abs(color1.b - color2.b) <= tolerance;
+    return abs((int)color1.r - (int)color2.r) <= tolerance &&
+           abs((int)color1.g - (int)color2.g) <= tolerance &&
+           abs((int)color1.b - (int)color2.b) <= tolerance;
 }
 
 // Function to draw a line with a real-number gradient.
@@ -276,7 +280,7 @@ void removeLines(RGB image[WIDTH][HEIGHT], FILE *jsonFile, uint32_t topColors[TO
                                             break; // Out of bounds.
                                         }
 
-                                        if (!isColorSimilar(image[nextX][nextY], color, 30)) { // Tolerance for color similarity.
+                                        if (!isColorSimilar(image[nextX][nextY], color, TOLERANCE_VALUE)) { // Tolerance for color similarity.
                                             break; // Color change.
                                         }
 
@@ -354,7 +358,7 @@ void gatherCalculations(void) {
 
     // Open a JSON file to write line information.
     char jsonFileName[200];
-    sprintf(jsonFileName, "%slines.json", NEWLOCATION);
+    snprintf(jsonFileName, sizeof(jsonFileName), "%slines.json", NEWLOCATION);
     FILE *jsonFile = fopen(jsonFileName, "w");
     if (!jsonFile) {
         fprintf(stderr, "Failed to open JSON file for writing.\n");
@@ -374,6 +378,7 @@ int main(int argc, const char *argv[]) {
     gatherCalculations();
     return 0;
 }
+
 #else
 
 #include "canterbury.h"
