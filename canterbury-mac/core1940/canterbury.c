@@ -33,7 +33,7 @@
 
  ****************************************************************/
 
-#if 1
+#if 0
 
 #include "canterbury.h"
 #include <unistd.h>
@@ -49,13 +49,25 @@
 typedef struct {
     uint32_t color; // 32-bit representation of the RGB color.
     uint32_t count; // Frequency of the color.
+    float luminance; // Luminance of the color (darker colors have lower luminance).
 } ColorFreq;
 
-// Comparator function for sorting colors by frequency in descending order.
+// Comparator function for sorting colors by frequency in descending order and luminance in ascending order.
 int compareColorFreq(const void *a, const void *b) {
     ColorFreq *cf1 = (ColorFreq *)a;
     ColorFreq *cf2 = (ColorFreq *)b;
-    return (cf1->count == cf2->count) ? (cf1->color - cf2->color) : (cf2->count - cf1->count);
+    if (cf1->count == cf2->count) {
+        return (cf1->luminance < cf2->luminance) ? -1 : 1;
+    }
+    return (cf2->count - cf1->count);
+}
+
+// Calculate the luminance of a color.
+float calculateLuminance(uint32_t color) {
+    uint8_t r = (color >> 16) & 0xFF;
+    uint8_t g = (color >> 8) & 0xFF;
+    uint8_t b = color & 0xFF;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b; // Standard luminance formula.
 }
 
 // Find the top colors in an image and their pixel counts.
@@ -75,16 +87,22 @@ void findTopColors(uint8_t *image, size_t width, size_t height, uint32_t topColo
 
     // Transfer non-zero color frequencies to an array for sorting.
     ColorFreq *colorFreqArray = malloc(MAX_COLORS * sizeof(ColorFreq));
+    if (!colorFreqArray) {
+        fprintf(stderr, "Memory allocation failed\n");
+        free(colorFrequency);
+        return;
+    }
+
     size_t colorCount = 0;
     for (uint32_t color = 0; color < MAX_COLORS; ++color) {
         if (colorFrequency[color] > 0) {
-            colorFreqArray[colorCount++] = (ColorFreq){color, colorFrequency[color]};
+            colorFreqArray[colorCount++] = (ColorFreq){color, colorFrequency[color], calculateLuminance(color)};
         }
     }
 
     free(colorFrequency); // Free the hash table.
 
-    // Sort colors by frequency.
+    // Sort colors by frequency and luminance.
     qsort(colorFreqArray, colorCount, sizeof(ColorFreq), compareColorFreq);
 
     // Extract the top TOPCOLORENTRIES colors.
@@ -103,13 +121,9 @@ void findTopColors(uint8_t *image, size_t width, size_t height, uint32_t topColo
 }
 
 #ifdef NEW1600
-
 #define MAPLOCATION "/Users/barbalet/github/ds-canterbury1940/canterbury1600.png"
-
 #else
-
 #define MAPLOCATION "/Users/barbalet/github/ds-canterbury1940/canterbury400.png"
-
 #endif
 
 #define NEWLOCATION "/Users/barbalet/github/ds-canterbury1940/"
@@ -145,9 +159,11 @@ typedef struct {
     RGB color;
 } LineInfo;
 
-// Check if two RGB colors are equal.
-bool isColorEqual(RGB color1, RGB color2) {
-    return color1.r == color2.r && color1.g == color2.g && color1.b == color2.b;
+// Check if two RGB colors are similar within a tolerance.
+bool isColorSimilar(RGB color1, RGB color2, int tolerance) {
+    return abs(color1.r - color2.r) <= tolerance &&
+           abs(color1.g - color2.g) <= tolerance &&
+           abs(color1.b - color2.b) <= tolerance;
 }
 
 // Function to draw a line with a real-number gradient.
@@ -260,7 +276,7 @@ void removeLines(RGB image[WIDTH][HEIGHT], FILE *jsonFile, uint32_t topColors[TO
                                             break; // Out of bounds.
                                         }
 
-                                        if (!isColorEqual(image[nextX][nextY], color)) {
+                                        if (!isColorSimilar(image[nextX][nextY], color, 30)) { // Tolerance for color similarity.
                                             break; // Color change.
                                         }
 
@@ -322,8 +338,12 @@ void removeLines(RGB image[WIDTH][HEIGHT], FILE *jsonFile, uint32_t topColors[TO
 void gatherCalculations(void) {
     png_t snip;
     unsigned char *canterburyByte = read_png_file(MAPLOCATION, &snip);
-    RGB canterbury[WIDTH][HEIGHT] = {0};
+    if (!canterburyByte) {
+        fprintf(stderr, "Failed to read PNG file.\n");
+        return;
+    }
 
+    RGB canterbury[WIDTH][HEIGHT] = {0};
     mapToOutput(canterbury, canterburyByte);
 
     uint32_t topColors[TOPCOLORENTRIES];
@@ -354,7 +374,6 @@ int main(int argc, const char *argv[]) {
     gatherCalculations();
     return 0;
 }
-
 #else
 
 #include "canterbury.h"

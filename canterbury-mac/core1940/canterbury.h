@@ -44,7 +44,7 @@
 #ifndef canterbury_h
 #define canterbury_h
 
-#undef NEW1600
+#define NEW1600
 
 #ifdef NEW1600
 
@@ -58,7 +58,7 @@
 
 #endif
 
-#define TOPCOLORENTRIES 16
+#define TOPCOLORENTRIES 20
 
 typedef union
 {
@@ -84,8 +84,6 @@ void findTopColors(uint8_t *image, size_t width, size_t height, uint32_t topColo
 void removeLine(RGB image[HEIGHT][WIDTH], RGB outv[HEIGHT][WIDTH], int startX, int startY, int dx, int dy, double threshold);
 
 bool colorDistance(int r1, int g1, int b1, int r2, int g2, int b2, double threshold);
-
-bool isColorSimilar(RGB startColor, RGB currentColor, double threshold);
 
 bool isColorEqual(RGB color1, RGB color2);
 
