@@ -215,7 +215,7 @@ void removeLines(RGB image[WIDTH][HEIGHT], FILE *jsonFile, uint32_t topColors[TO
 
         // Iterate through all four quadrants of the image.
         for (int quadrant = 0; quadrant < 4; quadrant++) {
-            int startX, startY, endX, endY;
+            int startX = 0, startY = 0, endX = WIDTH, endY = HEIGHT;
 
             // Define the bounds for each quadrant.
             switch (quadrant) {
